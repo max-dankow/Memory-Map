@@ -129,12 +129,52 @@ int get_index(int x, int y, Matrix matrix)
     return x * matrix.row + y;
 }
 
+void print_matrix(Matrix matrix)
+{
+    for (int row = 0; row < matrix.row; ++row)
+    {
+        for (int col = 0; col < matrix.col; ++col)
+        {
+            int index = get_index(row, col, matrix);
+            assert(index >= 0);
+            printf("%4.0lf ", matrix.shared_mem_ptr[index]);
+        }
+
+        printf("\n");
+    }
+
+    printf("\n");
+}
+
+void transpose(Matrix* matrix)
+{
+    double* buffer = (double*) malloc(matrix->file_size);
+    memcpy(buffer, matrix->shared_mem_ptr, matrix->file_size);
+
+    int tmp = matrix->col;
+    matrix->col = matrix->row;
+    matrix->row = tmp;
+
+    for (int row = 0; row < matrix->row; ++row)
+    {
+        for (int col = 0; col < matrix->col; ++col)
+        {
+            int index = get_index(row, col, *matrix);
+            assert(index >= 0);
+
+            matrix->shared_mem_ptr[index] = buffer[col * matrix->col + row];
+        }
+    }
+}
+
 void run(Matrix* matrix)
 {
     char* command = (char*) malloc(20);
 
     while (1)
     {
+        print_matrix(*matrix);
+
         int code = scanf("%s", command);
 
         if (code == EOF)
@@ -148,6 +188,13 @@ void run(Matrix* matrix)
         if (strcmp(command, "getinfo") == 0)
         {
             printf("col == %d, row == %d\n", matrix->col, matrix->row);
+            continue;
+        }
+
+        if (strcmp(command, "transpose") == 0)
+        {
+            transpose(matrix);
+            printf("Transposed.\n");
             continue;
         }
 
@@ -173,6 +220,40 @@ void run(Matrix* matrix)
                 printf("matrix[%d][%d] == %lf\n", x, y, *(((double*) matrix->shared_mem_ptr) + index));
             }
 
+            continue;
+        }
+
+        if (strcmp(command, "swap") == 0)
+        {
+            int x1, x2;
+            code = scanf("%d%d", &x1, &x2);
+
+            if (code != 2)
+            {
+                fprintf(stderr, "Wrong parametrs.\n");
+                continue;
+            }
+
+            if (x1 >= matrix->row || x1 < 0 || x2 >= matrix->row || x2 < 0)
+            {
+                fprintf(stderr, "Wrong parametrs.\n");
+                continue;
+            }
+
+            for (int i = 0; i < matrix->col; ++i)
+            {
+                double swap_tmp;
+
+                int index1 = get_index(x1, i, *matrix);
+                int index2 = get_index(x2, i, *matrix);
+                assert(index1 >= 0 && index2 >= 0);
+
+                swap_tmp = matrix->shared_mem_ptr[index1];
+                matrix->shared_mem_ptr[index1] = matrix->shared_mem_ptr[index2];
+                matrix->shared_mem_ptr[index2] = swap_tmp;
+            }
+
+            printf("Swaped row %d and %d\n", x1, x2);
             continue;
         }
 
@@ -214,8 +295,6 @@ void run(Matrix* matrix)
                 fprintf(stderr, "Wrong parametrs.\n");
                 continue;
             }
-
-            //int index = get_index(x, y, *matrix);
 
             if (strcmp(mode, "col") == 0)
             {
@@ -262,6 +341,8 @@ void run(Matrix* matrix)
             fprintf(stderr, "Wrong input.\n");
             continue;
         }
+
+
 
         fprintf(stderr, "Wrong input.\n");
     }
