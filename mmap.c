@@ -121,7 +121,7 @@ void open_matrix(char* file_name, Matrix* matrix)
     close(matrix->fd);
 }
 
-int get_index(int x, int y, const Matrix matrix)
+int get_index(int x, int y, Matrix matrix)
 {
     if (x < 0 || x >= matrix.row || y < 0 || y >= matrix.col)
         return -1;
@@ -168,6 +168,145 @@ void transpose(Matrix* matrix)
     free(buffer);
 }
 
+void command_get(Matrix* matrix)
+{
+    int x, y;
+    int code = scanf("%d%d", &x, &y);
+
+    if (code != 2)
+    {
+        fprintf(stderr, "Wrong parametrs.\n");
+        return;
+    }
+
+    int index = get_index(x, y, *matrix);
+
+    if (index == -1)
+    {
+        fprintf(stderr, "Wrong parametrs.\n");
+    }
+    else
+    {
+        printf("matrix[%d][%d] == %lf\n", x, y, matrix->shared_mem_ptr[index]);
+    }
+}
+
+void command_swap(Matrix* matrix)
+{
+    int x1, x2;
+    int code = scanf("%d%d", &x1, &x2);
+
+    if (code != 2)
+    {
+        fprintf(stderr, "Wrong parametrs.\n");
+        return;
+    }
+
+    if (x1 >= matrix->row || x1 < 0 || x2 >= matrix->row || x2 < 0)
+    {
+        fprintf(stderr, "Wrong parametrs.\n");
+        return;
+    }
+
+    for (int i = 0; i < matrix->col; ++i)
+    {
+        double swap_tmp;
+
+        int index1 = get_index(x1, i, *matrix);
+        int index2 = get_index(x2, i, *matrix);
+        assert(index1 >= 0 && index2 >= 0);
+
+        swap_tmp = matrix->shared_mem_ptr[index1];
+        matrix->shared_mem_ptr[index1] = matrix->shared_mem_ptr[index2];
+        matrix->shared_mem_ptr[index2] = swap_tmp;
+    }
+
+    printf("Swaped row %d and %d\n", x1, x2);
+}
+
+void command_set(Matrix* matrix)
+{
+    int x, y;
+    double new_value;
+    int code = scanf("%d%d%lf", &x, &y, &new_value);
+
+    if (code != 3)
+    {
+        fprintf(stderr, "Wrong parametrs.\n");
+        return;
+    }
+
+    int index = get_index(x, y, *matrix);
+
+    if (index == -1)
+    {
+        fprintf(stderr, "Wrong parametrs.\n");
+    }
+    else
+    {
+        matrix->shared_mem_ptr[index] = new_value;
+        printf("set matrix[%d][%d] = %lf\n", x, y, new_value);
+    }
+}
+
+void command_sum(Matrix* matrix)
+{
+    int i;
+    char mode[10];
+    int code = scanf("%s%d", mode, &i);
+
+    if (code != 2)
+    {
+        fprintf(stderr, "Wrong parametrs.\n");
+        return;
+    }
+
+    if (strcmp(mode, "col") == 0)
+    {
+        if (i >= matrix->col || i < 0)
+        {
+            fprintf(stderr, "Wrong parametrs.\n");
+            return;
+        }
+
+        double sum = 0;
+
+        for (int k = 0; k < matrix->row; ++k)
+        {
+            int index = get_index(k, i, *matrix);
+            assert(index >= 0);
+            sum += matrix->shared_mem_ptr[index];
+        }
+
+        printf("Col %d: sum == %lf\n", i, sum);
+        return;
+    }
+
+    if (strcmp(mode, "row") == 0)
+    {
+        if (i >= matrix->row || i < 0)
+        {
+            fprintf(stderr, "Wrong parametrs.\n");
+            return;
+        }
+
+        double sum = 0;
+
+        for (int k = 0; k < matrix->col; ++k)
+        {
+            int index = get_index(i, k, *matrix);
+            assert(index >= 0);
+            sum += matrix->shared_mem_ptr[index];
+        }
+
+        printf("Row %d: sum == %lf\n", i, sum);
+        return;
+    }
+
+    //если ключевое слово не row и не col
+    fprintf(stderr, "Wrong input.\n");
+}
+
 void run(Matrix* matrix)
 {
     char* command = (char*) malloc(20);
@@ -203,150 +342,29 @@ void run(Matrix* matrix)
 
         if (strcmp(command, "get") == 0)
         {
-            int x, y;
-            code = scanf("%d%d", &x, &y);
-
-            if (code != 2)
-            {
-                fprintf(stderr, "Wrong parametrs.\n");
-                continue;
-            }
-
-            int index = get_index(x, y, *matrix);
-
-            if (index == -1)
-            {
-                fprintf(stderr, "Wrong parametrs.\n");
-            }
-            else
-            {
-                printf("matrix[%d][%d] == %lf\n", x, y, matrix->shared_mem_ptr[index]);
-            }
-
+            command_get(matrix);
             continue;
         }
 
         if (strcmp(command, "swap") == 0)
         {
-            int x1, x2;
-            code = scanf("%d%d", &x1, &x2);
-
-            if (code != 2)
-            {
-                fprintf(stderr, "Wrong parametrs.\n");
-                continue;
-            }
-
-            if (x1 >= matrix->row || x1 < 0 || x2 >= matrix->row || x2 < 0)
-            {
-                fprintf(stderr, "Wrong parametrs.\n");
-                continue;
-            }
-
-            for (int i = 0; i < matrix->col; ++i)
-            {
-                double swap_tmp;
-
-                int index1 = get_index(x1, i, *matrix);
-                int index2 = get_index(x2, i, *matrix);
-                assert(index1 >= 0 && index2 >= 0);
-
-                swap_tmp = matrix->shared_mem_ptr[index1];
-                matrix->shared_mem_ptr[index1] = matrix->shared_mem_ptr[index2];
-                matrix->shared_mem_ptr[index2] = swap_tmp;
-            }
-
-            printf("Swaped row %d and %d\n", x1, x2);
+            command_swap(matrix);
             continue;
         }
 
         if (strcmp(command, "set") == 0)
         {
-            int x, y;
-            double new_value;
-            code = scanf("%d%d%lf", &x, &y, &new_value);
-
-            if (code != 3)
-            {
-                fprintf(stderr, "Wrong parametrs.\n");
-                continue;
-            }
-
-            int index = get_index(x, y, *matrix);
-
-            if (index == -1)
-            {
-                fprintf(stderr, "Wrong parametrs.\n");
-            }
-            else
-            {
-                matrix->shared_mem_ptr[index] = new_value;
-                printf("set matrix[%d][%d] = %lf\n", x, y, new_value);
-            }
-
+            command_set(matrix);
             continue;
         }
 
         if (strcmp(command, "sum") == 0)
         {
-            int i;
-            char mode[10];
-            code = scanf("%s%d", mode, &i);
-
-            if (code != 2)
-            {
-                fprintf(stderr, "Wrong parametrs.\n");
-                continue;
-            }
-
-            if (strcmp(mode, "col") == 0)
-            {
-                if (i >= matrix->col || i < 0)
-                {
-                    fprintf(stderr, "Wrong parametrs.\n");
-                    continue;
-                }
-
-                double sum = 0;
-
-                for (int k = 0; k < matrix->row; ++k)
-                {
-                    int index = get_index(k, i, *matrix);
-                    assert(index >= 0);
-                    sum += matrix->shared_mem_ptr[index];
-                }
-
-                printf("Col %d: sum == %lf\n", i, sum);
-                continue;
-            }
-
-            if (strcmp(mode, "row") == 0)
-            {
-                if (i >= matrix->row || i < 0)
-                {
-                    fprintf(stderr, "Wrong parametrs.\n");
-                    continue;
-                }
-
-                double sum = 0;
-
-                for (int k = 0; k < matrix->col; ++k)
-                {
-                    int index = get_index(i, k, *matrix);
-                    assert(index >= 0);
-                    sum += matrix->shared_mem_ptr[index];
-                }
-
-                printf("Row %d: sum == %lf\n", i, sum);
-                continue;
-            }
-
-            fprintf(stderr, "Wrong input.\n");
+            command_sum(matrix);
             continue;
         }
 
-
-
+        //в противном случае - неверная команда
         fprintf(stderr, "Wrong input.\n");
     }
 
