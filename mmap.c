@@ -121,12 +121,12 @@ void open_matrix(char* file_name, Matrix* matrix)
     close(matrix->fd);
 }
 
-int get_index(int x, int y, Matrix matrix)
+int get_index(int x, int y, const Matrix matrix)
 {
     if (x < 0 || x >= matrix.row || y < 0 || y >= matrix.col)
         return -1;
 
-    return x * matrix.row + y;
+    return x * matrix.col + y;
 }
 
 void print_matrix(Matrix matrix)
@@ -137,7 +137,7 @@ void print_matrix(Matrix matrix)
         {
             int index = get_index(row, col, matrix);
             assert(index >= 0);
-            printf("%4.0lf ", matrix.shared_mem_ptr[index]);
+            printf("%lf ", matrix.shared_mem_ptr[index]);
         }
 
         printf("\n");
@@ -161,10 +161,11 @@ void transpose(Matrix* matrix)
         {
             int index = get_index(row, col, *matrix);
             assert(index >= 0);
-
-            matrix->shared_mem_ptr[index] = buffer[col * matrix->col + row];
+            matrix->shared_mem_ptr[index] = buffer[col * matrix->row + row];
         }
     }
+
+    free(buffer);
 }
 
 void run(Matrix* matrix)
@@ -179,6 +180,8 @@ void run(Matrix* matrix)
 
         if (code == EOF)
             break;
+
+        //далее идет простой разбор команд
 
         if (strcmp(command, "exit") == 0)
         {
@@ -217,7 +220,7 @@ void run(Matrix* matrix)
             }
             else
             {
-                printf("matrix[%d][%d] == %lf\n", x, y, *(((double*) matrix->shared_mem_ptr) + index));
+                printf("matrix[%d][%d] == %lf\n", x, y, matrix->shared_mem_ptr[index]);
             }
 
             continue;
@@ -277,7 +280,7 @@ void run(Matrix* matrix)
             }
             else
             {
-                *(((double*) matrix->shared_mem_ptr) + index) = new_value;
+                matrix->shared_mem_ptr[index] = new_value;
                 printf("set matrix[%d][%d] = %lf\n", x, y, new_value);
             }
 
